@@ -98,7 +98,7 @@
             <textarea id="topic" name="topic" rows="4" required></textarea>
 
             <label for="persuasion"><strong>האם הדעה או ההסבר שנאמרו שכנעו אותך?</strong></label>
-            <select id="persuasion" name="persuasion" required>
+            <select id="persuasion" name="persuasion">
                 <option value="">-- בחר --</option>
                 <option value="כן">כן</option>
                 <option value="לא">לא</option>
@@ -118,11 +118,16 @@
             var submitButton = document.querySelector("button");
             var successMessage = document.getElementById("successMessage");
 
+            // וידוא שהשדה persuasion נשלח גם אם ריק
+            if (!formData.has("persuasion")) {
+                formData.append("persuasion", ""); 
+            }
+
             // השבתת הכפתור והצגת הודעה זמנית
             submitButton.disabled = true;
             submitButton.textContent = "שולח...";
 
-            fetch("https://script.google.com/macros/s/AKfycbyva638a3mX-GwBSvwKnvMIpEcgCZaXhwSk_s-o4_IjcgMjE_kktHrggZjYwkCJDNHvrg/exec", {
+            fetch("https://script.google.com/macros/s/AKfycbzwODRdGF5s90EW-7eNI7iSokCqu6GNW60X71ZshmfNunjZ7mPy6V-EnS73ZzUbXkyxhw/exec", {
                 method: "POST",
                 body: formData
             })
