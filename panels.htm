@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>דיווח על פאנליסטים באולפנים</title>
+    <style>
+        body { font-family: Arial, sans-serif; direction: rtl; text-align: right; margin: 20px; background-color: #f4f4f4; }
+        form { max-width: 400px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background: white; box-shadow: 2px 2px 10px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #333; }
+        label, input, select { display: block; width: 100%; margin-bottom: 10px; padding: 8px; font-size: 16px; }
+        button { background-color: #28a745; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; width: 100%; }
+        button:hover { background-color: #218838; }
+        #successMessage { display: none; text-align: center; color: green; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <h2>דיווח על פאנליסטים באולפנים</h2>
+    <form id="reportForm">
+        <label for="channel">בחר ערוץ:</label>
+        <select id="channel" name="channel" required>
+            <option value="">-- בחר ערוץ --</option>
+            <option value="ערוץ 11">ערוץ 11</option>
+            <option value="ערוץ 12">ערוץ 12</option>
+            <option value="ערוץ 13">ערוץ 13</option>
+            <option value="ערוץ 14">ערוץ 14</option>
+        </select>
+
+        <label for="name">שם מלא:</label>
+        <input type="text" id="name" name="name" required>
+
+        <label for="topic">נושא הדיון:</label>
+        <input type="text" id="topic" name="topic" required>
+
+        <button type="submit">שלח</button>
+    </form>
+
+    <p id="successMessage">✅ הנתונים נשלחו בהצלחה!</p>
+
+    <script>
+        document.getElementById("reportForm").addEventListener("submit", function(event) {
+            event.preventDefault(); // מונע רענון עמוד
+            var formData = new FormData(this);
+            
+            fetch("https://script.google.com/macros/s/AKfycbyva638a3mX-GwBSvwKnvMIpEcgCZaXhwSk_s-o4_IjcgMjE_kktHrggZjYwkCJDNHvrg/exec", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById("successMessage").style.display = "block"; // הצגת הודעת הצלחה
+                document.getElementById("reportForm").reset(); // איפוס הטופס
+            })
+            .catch(error => console.error("Error:", error));
+        });
+    </script>
+
+</body>
+</html>
