@@ -43,7 +43,7 @@
             margin-top: 10px; /* ריווח בין השדות */
             display: block;
         }
-        select, input {
+        select, input, textarea {
             width: 100%; /* מבטיח שכל השדות יהיו באותו רוחב */
             padding: 8px;
             font-size: 16px;
@@ -94,8 +94,15 @@
             <label for="name"><strong>שם הפאנליסט/ית:</strong></label>
             <input type="text" id="name" name="name" required>
 
-            <label for="topic"><strong>נושא הדיון באולפן:</strong></label>
-            <input type="text" id="topic" name="topic" required>
+            <label for="topic"><strong>פירוט על הדיון ודברי הפאנליסט/ית:</strong></label>
+            <textarea id="topic" name="topic" rows="4" required></textarea>
+
+            <label for="persuasion"><strong>האם הדעה או ההסבר שנאמרו שכנעו אותך?</strong></label>
+            <select id="persuasion" name="persuasion" required>
+                <option value="">-- בחר --</option>
+                <option value="כן">כן</option>
+                <option value="לא">לא</option>
+            </select>
 
             <button type="submit">שלח</button>
         </form>
@@ -106,18 +113,30 @@
     <script>
         document.getElementById("reportForm").addEventListener("submit", function(event) {
             event.preventDefault();
+
             var formData = new FormData(this);
-            
+            var submitButton = document.querySelector("button");
+            var successMessage = document.getElementById("successMessage");
+
+            // השבתת הכפתור והצגת הודעה זמנית
+            submitButton.disabled = true;
+            submitButton.textContent = "שולח...";
+
             fetch("https://script.google.com/macros/s/AKfycbyva638a3mX-GwBSvwKnvMIpEcgCZaXhwSk_s-o4_IjcgMjE_kktHrggZjYwkCJDNHvrg/exec", {
                 method: "POST",
                 body: formData
             })
             .then(response => response.text())
             .then(data => {
-                document.getElementById("successMessage").style.display = "block";
+                successMessage.style.display = "block";
                 document.getElementById("reportForm").reset();
             })
-            .catch(error => console.error("Error:", error));
+            .catch(error => console.error("Error:", error))
+            .finally(() => {
+                // החזרת הכפתור לפעולה לאחר השליחה
+                submitButton.disabled = false;
+                submitButton.textContent = "שלח";
+            });
         });
     </script>
 
