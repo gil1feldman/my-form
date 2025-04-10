@@ -174,15 +174,34 @@
         plugins: [ChartDataLabels]
       });
 
-      const editsRes = await fetch(`https://he.wikipedia.org/w/api.php?action=query&format=json&prop=revisions&titles=${encodedTitle}&rvlimit=max&rvstart=${endDate.toISOString()}&rvend=${startDate.toISOString()}&rvprop=timestamp&origin=*`);
-      const editsData = await editsRes.json();
-      const revs = Object.values(editsData.query.pages)[0]?.revisions || [];
-
       const editMap = {};
-      for (const r of revs) {
-        const date = new Date(r.timestamp).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: '2-digit' });
-        editMap[date] = (editMap[date] || 0) + 1;
-      }
+let continueToken = null;
+let done = false;
+
+while (!done) {
+  let url = `https://he.wikipedia.org/w/api.php?action=query&format=json&prop=revisions&titles=${encodedTitle}&rvlimit=max&rvstart=${endDate.toISOString()}&rvend=${startDate.toISOString()}&rvprop=timestamp&origin=*`;
+  if (continueToken) {
+    url += `&rvcontinue=${continueToken}`;
+  }
+
+  const response = await fetch(url);
+  const data = await response.json();
+
+  const pageData = Object.values(data.query.pages)[0];
+  const revisions = pageData?.revisions || [];
+
+  for (const r of revisions) {
+    const date = new Date(r.timestamp).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: '2-digit' });
+    editMap[date] = (editMap[date] || 0) + 1;
+  }
+
+  if (data.continue && data.continue.rvcontinue) {
+    continueToken = data.continue.rvcontinue;
+  } else {
+    done = true;
+  }
+}
+
 
       const editsCounts = dates.map(d => editMap[d] || 0);
       currentData.edits = editsCounts;
