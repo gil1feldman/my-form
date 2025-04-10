@@ -13,7 +13,6 @@
       direction: rtl;
       background-color: #f9f9f9;
     }
-
     header.topbar {
       width: 100%;
       display: flex;
@@ -23,11 +22,9 @@
       padding: 4px 16px;
       box-sizing: border-box;
     }
-
     .logo {
       height: 50px;
     }
-
     .donate-button {
       background-color: #d32f2f;
       color: white;
@@ -37,11 +34,9 @@
       font-weight: bold;
       font-size: 0.95em;
     }
-
     .donate-button:hover {
       background-color: #b71c1c;
     }
-
     main {
       display: flex;
       flex-direction: column;
@@ -53,11 +48,9 @@
       max-width: 1000px;
       margin: auto;
     }
-
     h2 {
       margin: 0 0 10px 0;
     }
-
     .controls {
       display: flex;
       flex-wrap: wrap;
@@ -65,39 +58,32 @@
       align-items: center;
       margin-bottom: 10px;
     }
-
     input, select, button {
       padding: 10px;
       font-size: 1em;
     }
-
     canvas {
       width: 100% !important;
       max-height: 35vh !important;
       margin-top: 15px;
     }
-
     #pageInfo {
       margin-top: 10px;
       font-size: 1.05em;
       text-align: right;
       line-height: 1.6;
     }
-
     #pageInfo b.label {
       color: #555;
       font-weight: bold;
     }
-
     #pageInfo ul {
       margin: 5px 0 0 0;
       padding-right: 20px;
     }
-
     #pageInfo li {
       margin-bottom: 6px;
     }
-
     a {
       margin-top: 8px;
       font-weight: bold;
@@ -189,7 +175,7 @@
           scales: { y: { beginAtZero: true } },
           plugins: {
             datalabels: {
-              display: false // ✅ הסתרת תוויות
+              display: false
             }
           }
         },
@@ -198,7 +184,7 @@
 
       const editsRes = await fetch(`https://he.wikipedia.org/w/api.php?action=query&format=json&prop=revisions&titles=${encodedTitle}&rvlimit=max&rvstart=${endDate.toISOString()}&rvend=${startDate.toISOString()}&rvprop=timestamp&origin=*`);
       const editsData = await editsRes.json();
-      const revs = Object.values(editsData.query.pages)[0].revisions || [];
+      const revs = Object.values(editsData.query.pages)[0]?.revisions || [];
 
       const editMap = {};
       for (const r of revs) {
@@ -226,13 +212,43 @@
       const infoRes = await fetch(`https://he.wikipedia.org/w/api.php?action=query&format=json&prop=revisions&titles=${encodedTitle}&rvlimit=1&rvdir=newer&rvprop=timestamp|user&origin=*`);
       const info = await infoRes.json();
       const page = Object.values(info.query.pages)[0];
+
+      if (page.missing) {
+        document.getElementById("pageInfo").innerHTML = `<span style="color: red;"><b>שגיאה:</b> הערך "${title}" לא נמצא בוויקיפדיה.</span>`;
+        if (viewsChart) viewsChart.destroy();
+        if (editsChart) editsChart.destroy();
+        return;
+      }
+
       const created = page?.revisions?.[0];
-      const createdText = created ? `<span><b class="label">הדף נוצר על ידי</b> ${created.user} <b class="label">בתאריך</b> ${new Date(created.timestamp).toLocaleString('he-IL')}</span><br>` : '';
+      const createdText = created
+        ? `<span><b class="label">הדף נוצר על ידי</b> ${created.user} <b class="label">בתאריך</b> ${new Date(created.timestamp).toLocaleString('he-IL')}</span><br>`
+        : '';
 
       const lastRes = await fetch(`https://he.wikipedia.org/w/api.php?action=query&format=json&prop=revisions&titles=${encodedTitle}&rvlimit=1&rvprop=timestamp|user&origin=*`);
       const last = await lastRes.json();
       const lastEdit = Object.values(last.query.pages)[0].revisions?.[0];
-      const lastText = lastEdit ? `<span><b class="label">העריכה האחרונה בוצעה על ידי</b> ${lastEdit.user} <b class="label">בתאריך</b> ${new Date(lastEdit.timestamp).toLocaleString('he-IL')}</span>` : '';
+
+      let warning = '';
+      if (lastEdit) {
+        const editTime = new Date(lastEdit.timestamp);
+        const now = new Date();
+        const diffHours = (now - editTime) / (1000 * 60 * 60);
+        if (diffHours < 5) {
+  const diffMinutes = Math.floor((now - editTime) / (1000 * 60));
+  const hours = Math.floor(diffMinutes / 60);
+  const minutes = diffMinutes % 60;
+  const timeDiffText = hours > 0
+    ? `${hours} שעות ו-${minutes} דקות`
+    : `${minutes} דקות`;
+  warning = ` <span style="color: red;">(נא לשים לב, עריכה אחרונה בוצעה לפני ${timeDiffText})</span>`;
+}
+
+      }
+
+      const lastText = lastEdit
+        ? `<span><b class="label">העריכה האחרונה בוצעה על ידי</b> ${lastEdit.user} <b class="label">בתאריך</b> ${new Date(lastEdit.timestamp).toLocaleString('he-IL')}</span>${warning}`
+        : '';
 
       let output = createdText + lastText;
 
@@ -276,5 +292,6 @@
       document.body.removeChild(a);
     }
   </script>
+
 </body>
 </html>
