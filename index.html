@@ -20,19 +20,19 @@
       justify-content: space-between;
       align-items: center;
       background-color: #eaeaea;
-      padding: 4px 16px; /* 🔽 כיווץ ריווח אנכי */
+      padding: 4px 16px;
       box-sizing: border-box;
     }
 
     .logo {
-      height: 50px; /* 🔽 לוגו קומפקטי */
+      height: 50px;
     }
 
     .donate-button {
       background-color: #d32f2f;
       color: white;
       text-decoration: none;
-      padding: 6px 10px; /* 🔽 פחות גובה */
+      padding: 6px 10px;
       border-radius: 4px;
       font-weight: bold;
       font-size: 0.95em;
@@ -81,6 +81,12 @@
       margin-top: 10px;
       font-size: 1.05em;
       text-align: right;
+      line-height: 1.6;
+    }
+
+    #pageInfo b.label {
+      color: #555;
+      font-weight: bold;
     }
 
     #pageInfo ul {
@@ -183,14 +189,7 @@
           scales: { y: { beginAtZero: true } },
           plugins: {
             datalabels: {
-              align: 'top',
-              anchor: 'end',
-              color: 'black',
-              display: ctx => {
-                const i = ctx.dataIndex, total = ctx.chart.data.labels.length;
-                return total <= 5 || i === total - 1;
-              },
-              formatter: Math.round
+              display: false // ✅ הסתרת תוויות
             }
           }
         },
@@ -228,12 +227,12 @@
       const info = await infoRes.json();
       const page = Object.values(info.query.pages)[0];
       const created = page?.revisions?.[0];
-      const createdText = created ? `הדף נוצר על ידי <b>${created.user}</b> בתאריך <b>${new Date(created.timestamp).toLocaleString('he-IL')}</b><br>` : '';
+      const createdText = created ? `<span><b class="label">הדף נוצר על ידי</b> ${created.user} <b class="label">בתאריך</b> ${new Date(created.timestamp).toLocaleString('he-IL')}</span><br>` : '';
 
       const lastRes = await fetch(`https://he.wikipedia.org/w/api.php?action=query&format=json&prop=revisions&titles=${encodedTitle}&rvlimit=1&rvprop=timestamp|user&origin=*`);
       const last = await lastRes.json();
       const lastEdit = Object.values(last.query.pages)[0].revisions?.[0];
-      const lastText = lastEdit ? `העריכה האחרונה בוצעה על ידי <b>${lastEdit.user}</b> בתאריך <b>${new Date(lastEdit.timestamp).toLocaleString('he-IL')}</b>` : '';
+      const lastText = lastEdit ? `<span><b class="label">העריכה האחרונה בוצעה על ידי</b> ${lastEdit.user} <b class="label">בתאריך</b> ${new Date(lastEdit.timestamp).toLocaleString('he-IL')}</span>` : '';
 
       let output = createdText + lastText;
 
