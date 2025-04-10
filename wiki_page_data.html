@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+  <meta charset="UTF-8">
+  <title>סטטיסטיקת ערך ויקיפדיה</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: Arial, sans-serif;
+      direction: rtl;
+      background-color: #f9f9f9;
+    }
+
+    header.topbar {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #eaeaea;
+      padding: 4px 16px; /* 🔽 כיווץ ריווח אנכי */
+      box-sizing: border-box;
+    }
+
+    .logo {
+      height: 50px; /* 🔽 לוגו קומפקטי */
+    }
+
+    .donate-button {
+      background-color: #d32f2f;
+      color: white;
+      text-decoration: none;
+      padding: 6px 10px; /* 🔽 פחות גובה */
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 0.95em;
+    }
+
+    .donate-button:hover {
+      background-color: #b71c1c;
+    }
+
+    main {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
+      height: calc(100% - 60px);
+      padding: 20px;
+      box-sizing: border-box;
+      max-width: 1000px;
+      margin: auto;
+    }
+
+    h2 {
+      margin: 0 0 10px 0;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    input, select, button {
+      padding: 10px;
+      font-size: 1em;
+    }
+
+    canvas {
+      width: 100% !important;
+      max-height: 35vh !important;
+      margin-top: 15px;
+    }
+
+    #pageInfo {
+      margin-top: 10px;
+      font-size: 1.05em;
+      text-align: right;
+    }
+
+    #pageInfo ul {
+      margin: 5px 0 0 0;
+      padding-right: 20px;
+    }
+
+    #pageInfo li {
+      margin-bottom: 6px;
+    }
+
+    a {
+      margin-top: 8px;
+      font-weight: bold;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="topbar">
+    <a href="https://beactive.co.il/project/80004" target="_blank" class="donate-button">תרומה למיזם "המצב הנתון"</a>
+    <img src="https://raw.githubusercontent.com/gil1feldman/my-form/main/logo_current_situation.png" alt="לוגו המיזם" class="logo">
+  </header>
+
+  <main>
+    <h2>נתונים על ערך ויקיפדיה</h2>
+
+    <div class="controls">
+      <input type="text" id="pageTitle" placeholder="הזן שם ערך">
+      <select id="rangeSelect">
+        <option value="7">7 ימים אחרונים</option>
+        <option value="30" selected>30 ימים אחרונים</option>
+        <option value="90">90 ימים אחרונים</option>
+        <option value="180">180 ימים אחרונים</option>
+        <option value="365">365 ימים אחרונים</option>
+        <option value="all">מאז ומעולם</option>
+      </select>
+      <button onclick="loadData()">הצג נתונים</button>
+      <button onclick="downloadCSV()">הורד CSV</button>
+    </div>
+
+    <div id="wikiLink"></div>
+    <div id="pageInfo"></div>
+    <canvas id="viewsChart"></canvas>
+    <canvas id="editsChart"></canvas>
+  </main>
+
+  <script>
+    let viewsChart, editsChart;
+    let currentData = { title: '', dates: [], views: [], edits: [] };
+
+    async function loadData() {
+      const title = document.getElementById("pageTitle").value.trim();
+      const range = document.getElementById("rangeSelect").value;
+      if (!title) return;
+
+      currentData.title = title;
+      const encodedTitle = encodeURIComponent(title);
+      const endDate = new Date();
+      let startDate = new Date(endDate);
+      if (range !== 'all') {
+        startDate.setDate(endDate.getDate() - parseInt(range));
+      } else {
+        startDate = new Date("2015-07-01");
+      }
+
+      const formatAPI = d => d.toISOString().slice(0,10).replace(/-/g, '');
+      const formatDisplay = d => new Date(d).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: '2-digit' });
+
+      const startStr = formatAPI(startDate);
+      const endStr = formatAPI(endDate);
+
+      document.getElementById("pageInfo").innerText = "טוען נתונים...";
+      document.getElementById("wikiLink").innerHTML = `<a href="https://he.wikipedia.org/wiki/${encodedTitle}" target="_blank">לצפייה בערך בוויקיפדיה »</a>`;
+
+      const viewsRes = await fetch(`https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/he.wikipedia.org/all-access/all-agents/${encodedTitle}/daily/${startStr}/${endStr}`);
+      const viewsData = await viewsRes.json();
+
+      const datesRaw = viewsData.items.map(i => i.timestamp.slice(0,8));
+      const dates = datesRaw.map(d => formatDisplay(`${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`));
+      const viewCounts = viewsData.items.map(i => i.views);
+
+      currentData.dates = dates;
+      currentData.views = viewCounts;
+
+      if (viewsChart) viewsChart.destroy();
+      viewsChart = new Chart(document.getElementById("viewsChart"), {
+        type: 'line',
+        data: {
+          labels: dates,
+          datasets: [{
+            label: 'צפיות יומיות',
+            data: viewCounts,
+            borderColor: 'blue',
+            fill: false
+          }]
+        },
+        options: {
+          scales: { y: { beginAtZero: true } },
+          plugins: {
+            datalabels: {
+              align: 'top',
+              anchor: 'end',
+              color: 'black',
+              display: ctx => {
+                const i = ctx.dataIndex, total = ctx.chart.data.labels.length;
+                return total <= 5 || i === total - 1;
+              },
+              formatter: Math.round
+            }
+          }
+        },
+        plugins: [ChartDataLabels]
+      });
+
+      const editsRes = await fetch(`https://he.wikipedia.org/w/api.php?action=query&format=json&prop=revisions&titles=${encodedTitle}&rvlimit=max&rvstart=${endDate.toISOString()}&rvend=${startDate.toISOString()}&rvprop=timestamp&origin=*`);
+      const editsData = await editsRes.json();
+      const revs = Object.values(editsData.query.pages)[0].revisions || [];
+
+      const editMap = {};
+      for (const r of revs) {
+        const date = new Date(r.timestamp).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: '2-digit' });
+        editMap[date] = (editMap[date] || 0) + 1;
+      }
+
+      const editsCounts = dates.map(d => editMap[d] || 0);
+      currentData.edits = editsCounts;
+
+      if (editsChart) editsChart.destroy();
+      editsChart = new Chart(document.getElementById("editsChart"), {
+        type: 'bar',
+        data: {
+          labels: dates,
+          datasets: [{
+            label: 'מספר עריכות',
+            data: editsCounts,
+            backgroundColor: 'orange'
+          }]
+        },
+        options: { scales: { y: { beginAtZero: true } } }
+      });
+
+      const infoRes = await fetch(`https://he.wikipedia.org/w/api.php?action=query&format=json&prop=revisions&titles=${encodedTitle}&rvlimit=1&rvdir=newer&rvprop=timestamp|user&origin=*`);
+      const info = await infoRes.json();
+      const page = Object.values(info.query.pages)[0];
+      const created = page?.revisions?.[0];
+      const createdText = created ? `הדף נוצר על ידי <b>${created.user}</b> בתאריך <b>${new Date(created.timestamp).toLocaleString('he-IL')}</b><br>` : '';
+
+      const lastRes = await fetch(`https://he.wikipedia.org/w/api.php?action=query&format=json&prop=revisions&titles=${encodedTitle}&rvlimit=1&rvprop=timestamp|user&origin=*`);
+      const last = await lastRes.json();
+      const lastEdit = Object.values(last.query.pages)[0].revisions?.[0];
+      const lastText = lastEdit ? `העריכה האחרונה בוצעה על ידי <b>${lastEdit.user}</b> בתאריך <b>${new Date(lastEdit.timestamp).toLocaleString('he-IL')}</b>` : '';
+
+      let output = createdText + lastText;
+
+      const last3Res = await fetch(`https://he.wikipedia.org/w/api.php?action=query&format=json&prop=revisions&titles=${encodedTitle}&rvlimit=3&rvprop=timestamp|user|comment|ids&rvdir=older&origin=*`);
+      const last3Data = await last3Res.json();
+      const revs3 = Object.values(last3Data.query.pages)[0].revisions;
+
+      if (revs3 && revs3.length > 0) {
+        output += `<h3>3 העריכות האחרונות:</h3><ul>`;
+        revs3.forEach(rev => {
+          const date = new Date(rev.timestamp).toLocaleString('he-IL');
+          const user = rev.user;
+          const comment = rev.comment || '(ללא תקציר)';
+          const link = `https://he.wikipedia.org/w/index.php?diff=cur&oldid=${rev.revid}`;
+          output += `<li><b>${date}</b> — <b>${user}</b>: ${comment} [<a href="${link}" target="_blank">השוואה לגרסה הנוכחית</a>]</li>`;
+        });
+        output += `</ul>`;
+      }
+
+      document.getElementById("pageInfo").innerHTML = output;
+    }
+
+    function downloadCSV() {
+      if (!currentData.dates.length) {
+        alert("אין נתונים להוריד.");
+        return;
+      }
+
+      let csv = 'תאריך,צפיות,עריכות\n';
+      for (let i = 0; i < currentData.dates.length; i++) {
+        csv += `${currentData.dates[i]},${currentData.views[i]},${currentData.edits[i]}\n`;
+      }
+
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `wiki_${currentData.title}_stats.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  </script>
+</body>
+</html>
