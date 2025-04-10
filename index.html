@@ -99,19 +99,24 @@
   <main>
     <h2>נתונים על ערך ויקיפדיה</h2>
     <div class="controls">
-      <input type="text" id="pageTitle" placeholder="הזן שם ערך">
-      <select id="rangeSelect">
-        <option value="7">7 ימים אחרונים</option>
-        <option value="30" selected>30 ימים אחרונים</option>
-        <option value="90">90 ימים אחרונים</option>
-        <option value="180">180 ימים אחרונים</option>
-        <option value="365">365 ימים אחרונים</option>
-        <option value="all">מאז ומעולם</option>
-      </select>
-      <button onclick="loadData()">הצג נתונים</button>
-      <button onclick="downloadCSV()">הורד CSV</button>
-      <button id="generateLink" onclick="generateShareLink()" disabled>צור קישור לשיתוף</button>
-    </div>
+  <input type="text" id="pageTitle" placeholder="הזן שם ערך">
+  <select id="granularitySelect">
+    <option value="daily" selected>רמת פירוט יומית</option>
+    <option value="monthly">רמת פירוט חודשית</option>
+  </select>
+  <select id="rangeSelect">
+    <option value="7">7 ימים אחרונים</option>
+    <option value="30" selected>30 ימים אחרונים</option>
+    <option value="90">90 ימים אחרונים</option>
+    <option value="180">180 ימים אחרונים</option>
+    <option value="365">365 ימים אחרונים</option>
+    <option value="all">מאז ומעולם</option>
+  </select>
+  <button onclick="loadData()">הצג נתונים</button>
+  <button onclick="downloadCSV()">הורד CSV</button>
+  <button id="generateLink" onclick="generateShareLink()" disabled>צור קישור לשיתוף</button>
+</div>
+
     <div id="wikiLink"></div>
     <div id="pageInfo"></div>
     <canvas id="viewsChart"></canvas>
@@ -124,6 +129,8 @@
     async function loadData() {
       const title = document.getElementById("pageTitle").value.trim();
       const range = document.getElementById("rangeSelect").value;
+      const granularity = document.getElementById("granularitySelect").value;
+
       if (!title) return;
 
       currentData.title = title;
@@ -148,9 +155,24 @@
       const viewsRes = await fetch(`https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/he.wikipedia.org/all-access/all-agents/${encodedTitle}/daily/${startStr}/${endStr}`);
       const viewsData = await viewsRes.json();
 
-      const datesRaw = viewsData.items.map(i => i.timestamp.slice(0,8));
-      const dates = datesRaw.map(d => formatDisplay(`${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`));
-      const viewCounts = viewsData.items.map(i => i.views);
+      let dates = [], viewCounts = [];
+if (granularity === 'monthly') {
+  const monthlyMap = {};
+  for (const item of viewsData.items) {
+    const monthKey = item.timestamp.slice(0,6); // YYYYMM
+    monthlyMap[monthKey] = (monthlyMap[monthKey] || 0) + item.views;
+  }
+  dates = Object.keys(monthlyMap).map(k => {
+    const year = k.slice(0, 4);
+    const month = k.slice(4, 6);
+    return `${month}/${year}`;
+  });
+  viewCounts = Object.values(monthlyMap);
+} else {
+  const datesRaw = viewsData.items.map(i => i.timestamp.slice(0,8));
+  dates = datesRaw.map(d => formatDisplay(`${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`));
+  viewCounts = viewsData.items.map(i => i.views);
+}
 
       currentData.dates = dates;
       currentData.views = viewCounts;
@@ -191,7 +213,16 @@ while (!done) {
   const revisions = pageData?.revisions || [];
 
   for (const r of revisions) {
-    const date = new Date(r.timestamp).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: '2-digit' });
+    let date;
+if (granularity === 'monthly') {
+  const d = new Date(r.timestamp);
+  const month = (d.getMonth() + 1).toString().padStart(2, '0');
+  const year = d.getFullYear();
+  date = `${month}/${year}`;
+} else {
+  date = new Date(r.timestamp).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: '2-digit' });
+}
+
     editMap[date] = (editMap[date] || 0) + 1;
   }
 
