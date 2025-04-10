@@ -92,15 +92,12 @@
   </style>
 </head>
 <body>
-
   <header class="topbar">
     <a href="https://beactive.co.il/project/80004" target="_blank" class="donate-button">תרומה למיזם "המצב הנתון"</a>
     <img src="https://raw.githubusercontent.com/gil1feldman/my-form/main/logo_current_situation.png" alt="לוגו המיזם" class="logo">
   </header>
-
   <main>
     <h2>נתונים על ערך ויקיפדיה</h2>
-
     <div class="controls">
       <input type="text" id="pageTitle" placeholder="הזן שם ערך">
       <select id="rangeSelect">
@@ -114,13 +111,11 @@
       <button onclick="loadData()">הצג נתונים</button>
       <button onclick="downloadCSV()">הורד CSV</button>
     </div>
-
     <div id="wikiLink"></div>
     <div id="pageInfo"></div>
     <canvas id="viewsChart"></canvas>
     <canvas id="editsChart"></canvas>
   </main>
-
   <script>
     let viewsChart, editsChart;
     let currentData = { title: '', dates: [], views: [], edits: [] };
@@ -173,11 +168,7 @@
         },
         options: {
           scales: { y: { beginAtZero: true } },
-          plugins: {
-            datalabels: {
-              display: false
-            }
-          }
+          plugins: { datalabels: { display: false } }
         },
         plugins: [ChartDataLabels]
       });
@@ -221,9 +212,7 @@
       }
 
       const created = page?.revisions?.[0];
-      const createdText = created
-        ? `<span><b class="label">הדף נוצר על ידי</b> ${created.user} <b class="label">בתאריך</b> ${new Date(created.timestamp).toLocaleString('he-IL')}</span><br>`
-        : '';
+      const createdText = created ? `<span><b class="label">הדף נוצר על ידי</b> ${created.user} <b class="label">בתאריך</b> ${new Date(created.timestamp).toLocaleString('he-IL')}</span><br>` : '';
 
       const lastRes = await fetch(`https://he.wikipedia.org/w/api.php?action=query&format=json&prop=revisions&titles=${encodedTitle}&rvlimit=1&rvprop=timestamp|user&origin=*`);
       const last = await lastRes.json();
@@ -233,32 +222,26 @@
       if (lastEdit) {
         const editTime = new Date(lastEdit.timestamp);
         const now = new Date();
-        const diffHours = (now - editTime) / (1000 * 60 * 60);
-        if (diffHours < 5) {
-  const diffMinutes = Math.floor((now - editTime) / (1000 * 60));
-  const hours = Math.floor(diffMinutes / 60);
-  const minutes = diffMinutes % 60;
-  const timeDiffText = hours > 0
-    ? `${hours} שעות ו-${minutes} דקות`
-    : `${minutes} דקות`;
-  warning = ` <span style="color: red;">(נא לשים לב, עריכה אחרונה בוצעה לפני ${timeDiffText})</span>`;
-}
-
+        const diffMinutes = Math.floor((now - editTime) / (1000 * 60));
+        const hours = Math.floor(diffMinutes / 60);
+        const minutes = diffMinutes % 60;
+        if (hours < 5) {
+          const text = hours > 0 ? `${hours} שעות ו-${minutes} דקות` : `${minutes} דקות`;
+          warning = ` <span style="color: red;">(נא לשים לב, עריכה אחרונה בוצעה לפני ${text})</span>`;
+        }
       }
 
-      const lastText = lastEdit
-        ? `<span><b class="label">העריכה האחרונה בוצעה על ידי</b> ${lastEdit.user} <b class="label">בתאריך</b> ${new Date(lastEdit.timestamp).toLocaleString('he-IL')}</span>${warning}`
-        : '';
+      const lastText = lastEdit ? `<span><b class="label">העריכה האחרונה בוצעה על ידי</b> ${lastEdit.user} <b class="label">בתאריך</b> ${new Date(lastEdit.timestamp).toLocaleString('he-IL')}</span>${warning}` : '';
 
       let output = createdText + lastText;
 
-      const last3Res = await fetch(`https://he.wikipedia.org/w/api.php?action=query&format=json&prop=revisions&titles=${encodedTitle}&rvlimit=3&rvprop=timestamp|user|comment|ids&rvdir=older&origin=*`);
+      const last3Res = await fetch(`https://he.wikipedia.org/w/api.php?action=query&format=json&prop=revisions&titles=${encodedTitle}&rvlimit=4&rvprop=timestamp|user|comment|ids&rvdir=older&origin=*`);
       const last3Data = await last3Res.json();
       const revs3 = Object.values(last3Data.query.pages)[0].revisions;
 
-      if (revs3 && revs3.length > 0) {
-        output += `<h3>3 העריכות האחרונות:</h3><ul>`;
-        revs3.forEach(rev => {
+      if (revs3 && revs3.length > 1) {
+        output += `<h3>עריכות אחרונות:</h3><ul>`;
+        revs3.slice(1).forEach(rev => {
           const date = new Date(rev.timestamp).toLocaleString('he-IL');
           const user = rev.user;
           const comment = rev.comment || '(ללא תקציר)';
@@ -272,30 +255,26 @@
     }
 
     function downloadCSV() {
-  if (!currentData.dates.length) {
-    alert("אין נתונים להוריד.");
-    return;
-  }
+      if (!currentData.dates.length) {
+        alert("אין נתונים להוריד.");
+        return;
+      }
 
-  let csv = 'תאריך,צפיות,עריכות\n';
-  for (let i = 0; i < currentData.dates.length; i++) {
-    csv += `${currentData.dates[i]},${currentData.views[i]},${currentData.edits[i]}\n`;
-  }
+      let csv = 'תאריך,צפיות,עריכות\n';
+      for (let i = 0; i < currentData.dates.length; i++) {
+        csv += `${currentData.dates[i]},${currentData.views[i]},${currentData.edits[i]}\n`;
+      }
 
-  // ✅ הוספת BOM כדי ש-Excel יציג עברית כמו שצריך
-  const bom = '\uFEFF';
-  const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
-
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `wiki_${currentData.title}_stats.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-}
-
+      const bom = '\uFEFF';
+      const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `wiki_${currentData.title}_stats.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
   </script>
-
 </body>
 </html>
