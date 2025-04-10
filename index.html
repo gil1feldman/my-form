@@ -110,6 +110,7 @@
       </select>
       <button onclick="loadData()">הצג נתונים</button>
       <button onclick="downloadCSV()">הורד CSV</button>
+      <button id="generateLink" onclick="generateShareLink()" disabled>צור קישור לשיתוף</button>
     </div>
     <div id="wikiLink"></div>
     <div id="pageInfo"></div>
@@ -252,6 +253,7 @@
       }
 
       document.getElementById("pageInfo").innerHTML = output;
+      document.getElementById("generateLink").disabled = false;
     }
 
     function downloadCSV() {
@@ -275,6 +277,27 @@
       a.click();
       document.body.removeChild(a);
     }
+
+    function generateShareLink() {
+      const title = currentData.title;
+      if (!title) return;
+      const baseUrl = window.location.origin + window.location.pathname;
+      const fullUrl = `${baseUrl}?pageTitle=${encodeURIComponent(title)}`;
+      navigator.clipboard.writeText(fullUrl).then(() => {
+        alert("📋 הקישור הועתק ללוח! ניתן להדביק בוואטסאפ או בכל מקום שתרצה.");
+      }).catch(() => {
+        alert("שגיאה בהעתקה. נסה להעתיק את הקישור ידנית:\n" + fullUrl);
+      });
+    }
+
+    window.addEventListener("load", () => {
+      const params = new URLSearchParams(window.location.search);
+      const pageTitle = params.get("pageTitle");
+      if (pageTitle) {
+        document.getElementById("pageTitle").value = decodeURIComponent(pageTitle);
+        loadData();
+      }
+    });
   </script>
 </body>
 </html>
