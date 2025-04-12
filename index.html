@@ -160,7 +160,7 @@
     document.getElementById("pageInfo").innerText = "טוען נתונים...";
     document.getElementById("wikiLink").innerHTML = `<a href="https://he.wikipedia.org/wiki/${encodedTitle}" target="_blank">לצפייה בערך בוויקיפדיה »</a>`;
 
-    const viewsRes = await fetch(`https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/he.wikipedia.org/all-access/all-agents/${encodedTitle}/daily/${startStr}/${endStr}`);
+    const viewsRes = await fetch(`https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/he.wikipedia.org/all-access/user/${encodedTitle}/daily/${startStr}/${endStr}`);
     const viewsData = await viewsRes.json();
 
     let dates = [], viewCounts = [];
