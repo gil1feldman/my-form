@@ -89,10 +89,6 @@
       font-weight: bold;
       text-decoration: none;
     }
-    .value {
-      color: #0d47a1;
-      font-weight: bold;
-    }
   </style>
 </head>
 <body>
@@ -133,188 +129,237 @@
   <div id="editsSummary" style="margin-top: 25px; font-weight: bold;"></div>
   <canvas id="editsChart"></canvas>
 </main>
+
 <script>
-let viewsChart, editsChart;
-let currentData = { title: '', dates: [], views: [], edits: [] };
+  let viewsChart, editsChart;
+  let currentData = { title: '', dates: [], views: [], edits: [] };
 
-async function loadData() {
-  const title = document.getElementById("pageTitle").value.trim();
-  const range = document.getElementById("rangeSelect").value;
-  const granularity = document.getElementById("granularitySelect").value;
-  if (!title) return;
+  async function loadData() {
+    const title = document.getElementById("pageTitle").value.trim();
+    const range = document.getElementById("rangeSelect").value;
+    const granularity = document.getElementById("granularitySelect").value;
 
-  currentData.title = title;
-  const encodedTitle = encodeURIComponent(title);
-  const endDate = new Date();
-  let startDate = new Date(endDate);
-  if (range !== 'all') {
-    startDate.setDate(endDate.getDate() - parseInt(range));
-  } else {
-    startDate = new Date("2015-07-01");
-  }
+    if (!title) return;
 
-  const formatAPI = d => d.toISOString().slice(0,10).replace(/-/g, '');
-  const formatDisplay = d => new Date(d).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: '2-digit' });
-  const startStr = formatAPI(startDate);
-  const endStr = formatAPI(endDate);
-
-  document.getElementById("pageInfo").innerText = "טוען נתונים...";
-  document.getElementById("wikiLink").innerHTML = `<a href="https://he.wikipedia.org/wiki/${encodedTitle}" target="_blank">לצפייה בערך בוויקיפדיה »</a>`;
-
-  const viewsRes = await fetch(`https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/he.wikipedia.org/all-access/user/${encodedTitle}/daily/${startStr}/${endStr}`);
-  const viewsData = await viewsRes.json();
-
-  let dates = [], viewCounts = [];
-  if (granularity === 'monthly') {
-    const monthlyMap = {};
-    for (const item of viewsData.items) {
-      const key = item.timestamp.slice(0,6);
-      monthlyMap[key] = (monthlyMap[key] || 0) + item.views;
+    currentData.title = title;
+    const encodedTitle = encodeURIComponent(title);
+    const endDate = new Date();
+    let startDate = new Date(endDate);
+    if (range !== 'all') {
+      startDate.setDate(endDate.getDate() - parseInt(range));
+    } else {
+      startDate = new Date("2015-07-01");
     }
-    dates = Object.keys(monthlyMap).map(k => `${k.slice(4, 6)}/${k.slice(0, 4)}`);
-    viewCounts = Object.values(monthlyMap);
-  } else {
-    const rawDates = viewsData.items.map(i => i.timestamp.slice(0,8));
-    dates = rawDates.map(d => formatDisplay(`${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`));
-    viewCounts = viewsData.items.map(i => i.views);
-  }
 
-  currentData.dates = dates;
-  currentData.views = viewCounts;
-  document.getElementById("viewsSummary").innerHTML =
-    `סך הכל צפיות בתקופה שבין <span class="value">${dates[0]}</span> ועד <span class="value">${dates[dates.length - 1]}</span>: <span class="value">${viewCounts.reduce((a, b) => a + b, 0).toLocaleString()}</span>`;
+    const formatAPI = d => d.toISOString().slice(0,10).replace(/-/g, '');
+    const formatDisplay = d => new Date(d).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: '2-digit' });
 
-  if (viewsChart) viewsChart.destroy();
-  viewsChart = new Chart(document.getElementById("viewsChart"), {
-    type: 'line',
-    data: {
-      labels: dates,
-      datasets: [{
-        label: 'צפיות יומיות',
-        data: viewCounts,
-        borderColor: 'blue',
-        fill: false
-      }]
-    },
-    options: {
-      scales: { y: { beginAtZero: true } },
-      plugins: { datalabels: { display: false }, legend: { display: false } }
-    },
-    plugins: [ChartDataLabels]
-  });
+    const startStr = formatAPI(startDate);
+    const endStr = formatAPI(endDate);
 
-  const editMap = {};
-  let continueToken = null;
-  let done = false;
-  while (!done) {
-    let url = `https://he.wikipedia.org/w/api.php?action=query&format=json&prop=revisions&titles=${encodedTitle}&rvlimit=max&rvstart=${endDate.toISOString()}&rvend=${startDate.toISOString()}&rvprop=timestamp&origin=*`;
-    if (continueToken) url += `&rvcontinue=${continueToken}`;
-    const res = await fetch(url);
-    const data = await res.json();
-    const revisions = Object.values(data.query.pages)[0]?.revisions || [];
-    for (const rev of revisions) {
-      let d = new Date(rev.timestamp);
-      let key = granularity === 'monthly' ? `${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}` : d.toLocaleDateString('he-IL');
-      editMap[key] = (editMap[key] || 0) + 1;
+    document.getElementById("pageInfo").innerText = "טוען נתונים...";
+    document.getElementById("wikiLink").innerHTML = `<a href="https://he.wikipedia.org/wiki/${encodedTitle}" target="_blank">לצפייה בערך בוויקיפדיה »</a>`;
+
+    const viewsRes = await fetch(`https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/he.wikipedia.org/all-access/user/${encodedTitle}/daily/${startStr}/${endStr}`);
+    const viewsData = await viewsRes.json();
+
+    let dates = [], viewCounts = [];
+    if (granularity === 'monthly') {
+      const monthlyMap = {};
+      for (const item of viewsData.items) {
+        const monthKey = item.timestamp.slice(0,6); // YYYYMM
+        monthlyMap[monthKey] = (monthlyMap[monthKey] || 0) + item.views;
+      }
+      dates = Object.keys(monthlyMap).map(k => `${k.slice(4, 6)}/${k.slice(0, 4)}`);
+      viewCounts = Object.values(monthlyMap);
+    } else {
+      const datesRaw = viewsData.items.map(i => i.timestamp.slice(0,8));
+      dates = datesRaw.map(d => formatDisplay(`${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`));
+      viewCounts = viewsData.items.map(i => i.views);
     }
-    if (data.continue?.rvcontinue) continueToken = data.continue.rvcontinue;
-    else done = true;
-  }
 
-  const editsCounts = dates.map(d => editMap[d] || 0);
-  currentData.edits = editsCounts;
-  document.getElementById("editsSummary").innerHTML =
-    `סך הכל עריכות בתקופה בין <span class="value">${dates[0]}</span> ועד <span class="value">${dates[dates.length - 1]}</span>: <span class="value">${editsCounts.reduce((a, b) => a + b, 0).toLocaleString()}</span>`;
+    currentData.dates = dates;
+    currentData.views = viewCounts;
 
-  if (editsChart) editsChart.destroy();
-  editsChart = new Chart(document.getElementById("editsChart"), {
-    type: 'bar',
-    data: {
-      labels: dates,
-      datasets: [{
-        label: 'מספר עריכות',
-        data: editsCounts,
-        backgroundColor: 'orange'
-      }]
-    },
-    options: { scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } }
-  });
+    document.getElementById("viewsSummary").innerText =
+      `סך הכל צפיות בתקופה שבין ${dates[0]} ועד ${dates[dates.length - 1]}: ${viewCounts.reduce((a, b) => a + b, 0).toLocaleString()}`;
 
-  const createdRes = await fetch(`https://he.wikipedia.org/w/api.php?action=query&format=json&prop=revisions&titles=${encodedTitle}&rvlimit=1&rvdir=newer&rvprop=timestamp|user&origin=*`);
-  const createdData = await createdRes.json();
-  const page = Object.values(createdData.query.pages)[0];
-  if (page.missing) {
-    document.getElementById("pageInfo").innerHTML = `<span style="color: red;"><b>שגיאה:</b> הערך "<span class="value">${title}</span>" לא נמצא בוויקיפדיה.</span>`;
     if (viewsChart) viewsChart.destroy();
-    if (editsChart) editsChart.destroy();
-    return;
-  }
+    viewsChart = new Chart(document.getElementById("viewsChart"), {
+      type: 'line',
+      data: {
+        labels: dates,
+        datasets: [{
+          label: 'צפיות יומיות',
+          data: viewCounts,
+          borderColor: 'blue',
+          fill: false
+        }]
+      },
+      options: {
+        scales: { y: { beginAtZero: true } },
+        plugins: {
+          datalabels: { display: false },
+          legend: { display: false }
+        }
+      },
+      plugins: [ChartDataLabels]
+    });
 
-  const created = page.revisions?.[0];
-  const createdText = created ? `<span><b class="label">הדף נוצר על ידי</b> <span class="value">${created.user}</span> <b class="label">בתאריך</b> <span class="value">${new Date(created.timestamp).toLocaleString('he-IL')}</span></span><br>` : '';
+    const editMap = {};
+    let continueToken = null;
+    let done = false;
 
-  const lastRes = await fetch(`https://he.wikipedia.org/w/api.php?action=query&format=json&prop=revisions&titles=${encodedTitle}&rvlimit=1&rvprop=timestamp|user&origin=*`);
-  const lastData = await lastRes.json();
-  const lastEdit = Object.values(lastData.query.pages)[0].revisions?.[0];
+    while (!done) {
+      let url = `https://he.wikipedia.org/w/api.php?action=query&format=json&prop=revisions&titles=${encodedTitle}&rvlimit=max&rvstart=${endDate.toISOString()}&rvend=${startDate.toISOString()}&rvprop=timestamp&origin=*`;
+      if (continueToken) url += `&rvcontinue=${continueToken}`;
 
-  let warning = '';
-  if (lastEdit) {
-    const editTime = new Date(lastEdit.timestamp);
-    const now = new Date();
-    const diffMinutes = Math.floor((now - editTime) / (1000 * 60));
-    const hours = Math.floor(diffMinutes / 60);
-    const minutes = diffMinutes % 60;
-    if (hours < 5) {
-      const timeText = hours > 0 ? `${hours} שעות ו-${minutes} דקות` : `${minutes} דקות`;
-      warning = ` <span style="color: red;">(נא לשים לב, עריכה אחרונה בוצעה לפני ${timeText})</span>`;
+      const response = await fetch(url);
+      const data = await response.json();
+
+      const pageData = Object.values(data.query.pages)[0];
+      const revisions = pageData?.revisions || [];
+
+      for (const r of revisions) {
+        let date;
+        if (granularity === 'monthly') {
+          const d = new Date(r.timestamp);
+          date = `${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
+        } else {
+          date = new Date(r.timestamp).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: '2-digit' });
+        }
+        editMap[date] = (editMap[date] || 0) + 1;
+      }
+
+      if (data.continue && data.continue.rvcontinue) {
+        continueToken = data.continue.rvcontinue;
+      } else {
+        done = true;
+      }
     }
+
+    const editsCounts = dates.map(d => editMap[d] || 0);
+    currentData.edits = editsCounts;
+
+    document.getElementById("editsSummary").innerText =
+      `סך הכל עריכות בתקופה בין ${dates[0]} ועד ${dates[dates.length - 1]}: ${editsCounts.reduce((a, b) => a + b, 0).toLocaleString()}`;
+
+    if (editsChart) editsChart.destroy();
+    editsChart = new Chart(document.getElementById("editsChart"), {
+      type: 'bar',
+      data: {
+        labels: dates,
+        datasets: [{
+          label: 'מספר עריכות',
+          data: editsCounts,
+          backgroundColor: 'orange'
+        }]
+      },
+      options: {
+        scales: { y: { beginAtZero: true } },
+        plugins: {
+          legend: { display: false }
+        }
+      }
+    });
+
+    const infoRes = await fetch(`https://he.wikipedia.org/w/api.php?action=query&format=json&prop=revisions&titles=${encodedTitle}&rvlimit=1&rvdir=newer&rvprop=timestamp|user&origin=*`);
+    const info = await infoRes.json();
+    const page = Object.values(info.query.pages)[0];
+
+    if (page.missing) {
+      document.getElementById("pageInfo").innerHTML = `<span style="color: red;"><b>שגיאה:</b> הערך "${title}" לא נמצא בוויקיפדיה.</span>`;
+      if (viewsChart) viewsChart.destroy();
+      if (editsChart) editsChart.destroy();
+      return;
+    }
+
+    const created = page?.revisions?.[0];
+    const createdText = created ? `<span><b class="label">הדף נוצר על ידי</b> ${created.user} <b class="label">בתאריך</b> ${new Date(created.timestamp).toLocaleString('he-IL')}</span><br>` : '';
+
+    const lastRes = await fetch(`https://he.wikipedia.org/w/api.php?action=query&format=json&prop=revisions&titles=${encodedTitle}&rvlimit=1&rvprop=timestamp|user&origin=*`);
+    const last = await lastRes.json();
+    const lastEdit = Object.values(last.query.pages)[0].revisions?.[0];
+
+    let warning = '';
+    if (lastEdit) {
+      const editTime = new Date(lastEdit.timestamp);
+      const now = new Date();
+      const diffMinutes = Math.floor((now - editTime) / (1000 * 60));
+      const hours = Math.floor(diffMinutes / 60);
+      const minutes = diffMinutes % 60;
+      if (hours < 5) {
+        const text = hours > 0 ? `${hours} שעות ו-${minutes} דקות` : `${minutes} דקות`;
+        warning = ` <span style="color: red;">(נא לשים לב, עריכה אחרונה בוצעה לפני ${text})</span>`;
+      }
+    }
+
+    const lastText = lastEdit ? `<span><b class="label">העריכה האחרונה בוצעה על ידי</b> ${lastEdit.user} <b class="label">בתאריך</b> ${new Date(lastEdit.timestamp).toLocaleString('he-IL')}</span>${warning}` : '';
+
+    let output = createdText + lastText;
+
+    const last3Res = await fetch(`https://he.wikipedia.org/w/api.php?action=query&format=json&prop=revisions&titles=${encodedTitle}&rvlimit=4&rvprop=timestamp|user|comment|ids&rvdir=older&origin=*`);
+    const last3Data = await last3Res.json();
+    const revs3 = Object.values(last3Data.query.pages)[0].revisions;
+
+    if (revs3 && revs3.length > 1) {
+      output += `<h3>עריכות אחרונות:</h3><ul>`;
+      revs3.slice(1).forEach(rev => {
+        const date = new Date(rev.timestamp).toLocaleString('he-IL');
+        const user = rev.user;
+        const comment = rev.comment || '(ללא תקציר)';
+        const link = `https://he.wikipedia.org/w/index.php?diff=cur&oldid=${rev.revid}`;
+        output += `<li><b>${date}</b> — <b>${user}</b>: ${comment} [<a href="${link}" target="_blank">השוואה לגרסה הנוכחית</a>]</li>`;
+      });
+      output += `</ul>`;
+    }
+
+    document.getElementById("pageInfo").innerHTML = output;
+    document.getElementById("generateLink").disabled = false;
   }
 
-  const lastText = lastEdit ? `<span><b class="label">העריכה האחרונה בוצעה על ידי</b> <span class="value">${lastEdit.user}</span> <b class="label">בתאריך</b> <span class="value">${new Date(lastEdit.timestamp).toLocaleString('he-IL')}</span></span>${warning}` : '';
-  document.getElementById("pageInfo").innerHTML = createdText + lastText;
-  document.getElementById("generateLink").disabled = false;
-}
+  function downloadCSV() {
+    if (!currentData.dates.length) {
+      alert("אין נתונים להוריד.");
+      return;
+    }
 
-function downloadCSV() {
-  if (!currentData.dates.length) {
-    alert("אין נתונים להוריד.");
-    return;
-  }
-  let csv = 'תאריך,צפיות,עריכות\n';
-  for (let i = 0; i < currentData.dates.length; i++) {
-    csv += `${currentData.dates[i]},${currentData.views[i]},${currentData.edits[i]}\n`;
-  }
-  const bom = '\uFEFF';
-  const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `wiki_${currentData.title}_stats.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-}
+    let csv = 'תאריך,צפיות,עריכות\n';
+    for (let i = 0; i < currentData.dates.length; i++) {
+      csv += `${currentData.dates[i]},${currentData.views[i]},${currentData.edits[i]}\n`;
+    }
 
-function generateShareLink() {
-  const title = currentData.title;
-  if (!title) return;
-  const baseUrl = window.location.origin + window.location.pathname;
-  const fullUrl = `${baseUrl}?pageTitle=${encodeURIComponent(title)}`;
-  navigator.clipboard.writeText(fullUrl).then(() => {
-    alert("📋 הקישור הועתק ללוח! ניתן להדביק בוואטסאפ או בכל מקום שתרצה.");
-  }).catch(() => {
-    alert("שגיאה בהעתקה. נסה להעתיק את הקישור ידנית:\n" + fullUrl);
+    const bom = '\uFEFF';
+    const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `wiki_${currentData.title}_stats.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+
+  function generateShareLink() {
+    const title = currentData.title;
+    if (!title) return;
+    const baseUrl = window.location.origin + window.location.pathname;
+    const fullUrl = `${baseUrl}?pageTitle=${encodeURIComponent(title)}`;
+    navigator.clipboard.writeText(fullUrl).then(() => {
+      alert("📋 הקישור הועתק ללוח! ניתן להדביק בוואטסאפ או בכל מקום שתרצה.");
+    }).catch(() => {
+      alert("שגיאה בהעתקה. נסה להעתיק את הקישור ידנית:\n" + fullUrl);
+    });
+  }
+
+  window.addEventListener("load", () => {
+    const params = new URLSearchParams(window.location.search);
+    const pageTitle = params.get("pageTitle");
+    if (pageTitle) {
+      document.getElementById("pageTitle").value = decodeURIComponent(pageTitle);
+      loadData();
+    }
   });
-}
-
-window.addEventListener("load", () => {
-  const params = new URLSearchParams(window.location.search);
-  const pageTitle = params.get("pageTitle");
-  if (pageTitle) {
-    document.getElementById("pageTitle").value = decodeURIComponent(pageTitle);
-    loadData();
-  }
-});
 </script>
 </body>
 </html>
