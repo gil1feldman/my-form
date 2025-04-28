@@ -5,63 +5,70 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>דיווח על שופרות בפאנלים</title>
     <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            direction: rtl; 
-            text-align: right; 
-            margin: 20px; 
-            background-color: #F0F8FF;
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            direction: rtl;
+            text-align: right;
+            margin: 0;
+            background: linear-gradient(to right, #eef2f3, #8dc6ff);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
         .container {
-            max-width: 500px; 
-            margin: auto; 
-            padding: 20px; 
-            border-radius: 12px; 
-            background: white; 
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+            width: 100%;
+            max-width: 450px;
         }
-        h2 { 
-            text-align: center; 
+        h2 {
+            text-align: center;
             color: #0A3D91;
-            margin-bottom: 20px;
-        }
-        .logo {
-            display: block;
-            margin: auto;
-            width: 180px;
-            margin-bottom: 15px;
+            margin-bottom: 25px;
         }
         label {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: bold;
-            margin-top: 15px;
+            margin: 10px 0 5px;
             display: block;
+            color: #333;
         }
         select, input, textarea {
             width: 100%;
             padding: 10px;
-            font-size: 16px;
+            font-size: 15px;
             margin-bottom: 15px;
             border: 1px solid #ccc;
             border-radius: 6px;
+            background: #fafafa;
+            transition: border-color 0.3s;
         }
-        button { 
-            background-color: #8DC63F; 
-            color: white; 
-            padding: 12px; 
-            border: none; 
-            border-radius: 6px; 
-            cursor: pointer; 
-            font-size: 18px; 
-            width: 100%; 
+        select:focus, input:focus, textarea:focus {
+            border-color: #0A3D91;
+            outline: none;
+        }
+        button {
+            background-color: #0A3D91;
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
             transition: background-color 0.3s;
         }
-        button:hover { background-color: #7AB530; }
-        #successMessage { 
-            display: none; 
-            text-align: center; 
-            color: #0A3D91; 
-            margin-top: 15px; 
+        button:hover {
+            background-color: #08306b;
+        }
+        #successMessage {
+            display: none;
+            text-align: center;
+            color: #0A3D91;
+            margin-top: 20px;
             font-weight: bold;
         }
     </style>
@@ -69,8 +76,6 @@
 <body>
 
     <div class="container">
-        <img src="logo_current_situation.png" alt="הלוגו של המצב הנתון" class="logo">
-        
         <h2>דיווח על שופרות בפאנלים</h2>
 
         <form id="reportForm">
@@ -90,7 +95,7 @@
             <label for="topic">נושא הדיון:</label>
             <textarea id="topic" name="topic" rows="4" required></textarea>
 
-            <label for="persuasion">האם השופר שכנע אותך?</label>
+            <label for="persuasion">האם השופר היה נשמע משכנע?</label>
             <select id="persuasion" name="persuasion">
                 <option value="">— בחר —</option>
                 <option value="כן">כן</option>
