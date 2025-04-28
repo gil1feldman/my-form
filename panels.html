@@ -3,88 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>דיווח על פאנליסטים באולפנים</title>
+    <title>דיווח על שופרות בפאנלים</title>
     <style>
         body { 
             font-family: Arial, sans-serif; 
             direction: rtl; 
             text-align: right; 
             margin: 20px; 
-            background-color: #F0F8FF; /* רקע תכלת */
+            background-color: #F0F8FF;
         }
         .container {
             max-width: 500px; 
             margin: auto; 
             padding: 20px; 
-            border-radius: 8px; 
+            border-radius: 12px; 
             background: white; 
-            box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
         h2 { 
             text-align: center; 
-            color: #0A3D91; /* כחול כהה */
+            color: #0A3D91;
+            margin-bottom: 20px;
         }
         .logo {
             display: block;
             margin: auto;
-            width: 200px; /* התאמת גודל */
-            margin-bottom: 10px; /* הקטנת הרווח בין הלוגו לכותרת */
-        }
-        .info-box {
-            background-color: #E3F2FD; /* רקע כחול בהיר */
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 5px;
-            font-size: 16px;
-            color: #333;
+            width: 180px;
+            margin-bottom: 15px;
         }
         label {
-            font-size: 18px; /* טקסט גדול יותר */
-            font-weight: bold; /* בולד לכותרות */
-            margin-top: 10px; /* ריווח בין השדות */
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 15px;
             display: block;
         }
         select, input, textarea {
-            width: 100%; /* מבטיח שכל השדות יהיו באותו רוחב */
-            padding: 8px;
+            width: 100%;
+            padding: 10px;
             font-size: 16px;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             border: 1px solid #ccc;
-            border-radius: 4px;
+            border-radius: 6px;
         }
         button { 
-            background-color: #8DC63F; /* ירוק */
+            background-color: #8DC63F; 
             color: white; 
-            padding: 10px; 
+            padding: 12px; 
             border: none; 
-            border-radius: 5px; 
+            border-radius: 6px; 
             cursor: pointer; 
-            font-size: 16px; 
+            font-size: 18px; 
             width: 100%; 
+            transition: background-color 0.3s;
         }
         button:hover { background-color: #7AB530; }
-        #successMessage { display: none; text-align: center; color: #0A3D91; margin-top: 10px; }
+        #successMessage { 
+            display: none; 
+            text-align: center; 
+            color: #0A3D91; 
+            margin-top: 15px; 
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <!-- לוגו בראש העמוד -->
         <img src="logo_current_situation.png" alt="הלוגו של המצב הנתון" class="logo">
         
-        <h2>דיווח על פאנליסטים באולפנים</h2>
+        <h2>דיווח על שופרות בפאנלים</h2>
 
-        <!-- תיבת טקסט עם מידע -->
-        <div class="info-box">
-            <p><strong>ברוכים הבאים לטופס דיווח על השתתפות פאנליסטים באולפנים.</strong></p>
-            <p>הדיווח שלכם חשוב כדי לבנות תמונת מצב של הדעות שנשמעות באולפנים ולפקח האם התקשורת מאוזנת או מוטה לצד מסוים.</p>
-            <p><em>בהמשך נוסיף לכאן קישור לראות את התוצאות.</em></p>
-        </div>
-        
         <form id="reportForm">
-            <label for="channel"><strong>שם הערוץ:</strong></label>
+            <label for="channel">שם הערוץ:</label>
             <select id="channel" name="channel" required>
-                <option value="">-- בחר ערוץ --</option>
+                <option value="">— בחר ערוץ —</option>
                 <option value="ערוץ 11">ערוץ 11</option>
                 <option value="ערוץ 12">ערוץ 12</option>
                 <option value="ערוץ 13">ערוץ 13</option>
@@ -92,15 +84,15 @@
                 <option value="I24">ערוץ I24</option>
             </select>
 
-            <label for="name"><strong>שם הפאנליסט/ית:</strong></label>
+            <label for="name">שם השופר:</label>
             <input type="text" id="name" name="name" required>
 
-            <label for="topic"><strong>פירוט על הדיון ודברי הפאנליסט/ית:</strong></label>
+            <label for="topic">נושא הדיון:</label>
             <textarea id="topic" name="topic" rows="4" required></textarea>
 
-            <label for="persuasion"><strong>האם הדעה או ההסבר שנאמרו שכנעו אותך?</strong></label>
+            <label for="persuasion">האם השופר שכנע אותך?</label>
             <select id="persuasion" name="persuasion">
-                <option value="">-- בחר --</option>
+                <option value="">— בחר —</option>
                 <option value="כן">כן</option>
                 <option value="לא">לא</option>
             </select>
@@ -119,12 +111,10 @@
             var submitButton = document.querySelector("button");
             var successMessage = document.getElementById("successMessage");
 
-            // וידוא שהשדה persuasion נשלח גם אם ריק
             if (!formData.has("persuasion")) {
-                formData.append("persuasion", ""); 
+                formData.append("persuasion", "");
             }
 
-            // השבתת הכפתור והצגת הודעה זמנית
             submitButton.disabled = true;
             submitButton.textContent = "שולח...";
 
@@ -139,7 +129,6 @@
             })
             .catch(error => console.error("Error:", error))
             .finally(() => {
-                // החזרת הכפתור לפעולה לאחר השליחה
                 submitButton.disabled = false;
                 submitButton.textContent = "שלח";
             });
